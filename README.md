@@ -15,7 +15,7 @@ go get -u github.com/CyrivlClth/snowserver
 ## 运行
 
 ```shell
-snowserver -gp=50051 -hp=8080 -d run
+snowserver -gp=50051 -hp=8080 server
 
 # 获取更多运行信息
 snowserver -h

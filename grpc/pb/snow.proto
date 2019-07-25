@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package snow.pb;
+
+message IDRequest {
+    string token = 1;
+}
+
+message IDResponse {
+    int64 id = 1;
+}
+
+message IDsRequest {
+    string token = 1;
+    int64 count = 2;
+}
+
+message IDsResponse {
+    repeated int64 ids = 1;
+    int64 count = 2;
+}
+
+message StatsRequest {
+    string token = 1;
+}
+
+message StatsResponse {
+    int64 data_center_id = 1;
+    int64 worker_id = 2;
+    int64 start_timestamp = 3;
+    int64 last_timestamp = 4;
+    int64 timestamp = 5;
+    int64 sequence = 6;
+    int64 sequence_overload = 7;
+    int64 errors_count = 8;
+}
+
+service Snowflake {
+    rpc NextID (IDRequest) returns (IDResponse);
+    rpc GetIDs (IDsRequest) returns (IDsResponse);
+    rpc Stats (StatsRequest) returns (StatsResponse);
+}
