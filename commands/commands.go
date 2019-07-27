@@ -7,13 +7,16 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/CyrivlClth/snowserver/config"
 	gsrv "github.com/CyrivlClth/snowserver/grpc/server"
 	hsrv "github.com/CyrivlClth/snowserver/http/server"
 )
 
 var (
-	grpcPort int
-	httpPort int
+	grpcPort     int
+	httpPort     int
+	workerID     int
+	dataCenterID int
 )
 
 var ServerFlags = []cli.Flag{
@@ -32,6 +35,18 @@ var ServerFlags = []cli.Flag{
 	cli.BoolFlag{
 		Name:  "d",
 		Usage: "指定服务后台运行",
+	},
+	cli.IntFlag{
+		Name:        "work",
+		Usage:       "指定服务的工作节点ID",
+		Value:       0,
+		Destination: &workerID,
+	},
+	cli.IntFlag{
+		Name:        "center",
+		Usage:       "指定服务的数据中心ID",
+		Value:       0,
+		Destination: &dataCenterID,
 	},
 }
 
@@ -54,23 +69,36 @@ var ServerCommand = cli.Command{
 }
 
 func RunAllAction(c *cli.Context) error {
+	err := config.Init(int64(workerID), int64(dataCenterID))
+	if err != nil {
+		return err
+	}
 	g := errgroup.Group{}
 	g.Go(func() error {
-		return RunGrpcAction(c)
+		return gsrv.Run(fmt.Sprintf(":%d", grpcPort))
 	})
 
 	g.Go(func() error {
-		return RunHttpAction(c)
+		gin.SetMode(gin.ReleaseMode)
+		return hsrv.Run(fmt.Sprintf(":%d", httpPort))
 	})
 
 	return g.Wait()
 }
 
 func RunGrpcAction(c *cli.Context) error {
+	err := config.Init(int64(workerID), int64(dataCenterID))
+	if err != nil {
+		return err
+	}
 	return gsrv.Run(fmt.Sprintf(":%d", grpcPort))
 }
 
 func RunHttpAction(c *cli.Context) error {
 	gin.SetMode(gin.ReleaseMode)
+	err := config.Init(int64(workerID), int64(dataCenterID))
+	if err != nil {
+		return err
+	}
 	return hsrv.Run(fmt.Sprintf(":%d", httpPort))
 }

@@ -5,8 +5,11 @@ import (
 	"errors"
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/CyrivlClth/snowserver/config"
 	pb "github.com/CyrivlClth/snowserver/grpc/pb"
@@ -39,12 +42,28 @@ func (s *server) Stats(context.Context, *pb.StatsRequest) (*pb.StatsResponse, er
 	panic("implement me")
 }
 
+func RecoverInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		startTime := time.Now()
+		defer func() {
+			if r := recover(); r != nil {
+				err = status.Errorf(codes.Internal, "%s", r)
+			}
+		}()
+		resp, err = handler(ctx, req)
+		log.Printf("%dms", time.Since(startTime).Nanoseconds()/10000)
+		return
+	}
+}
+
 func Run(addr string) (err error) {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return
 	}
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(grpc.UnaryInterceptor(
+		RecoverInterceptor(),
+	))
 	pb.RegisterSnowflakeServer(srv, &server{})
 	log.Printf("grpc sever listening at %v", lis.Addr())
 	return srv.Serve(lis)
